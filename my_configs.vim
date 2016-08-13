@@ -27,4 +27,4 @@ autocmd FileType html noremap <buffer> <c-j> :call HtmlBeautify()<cr>
 autocmd FileType css noremap <buffer> <c-j> :call CSSBeautify()<cr>
 
 autocmd BufNewFile,BufRead *.json set ft=javascript
-
+set nofoldenable
