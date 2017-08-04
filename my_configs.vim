@@ -18,8 +18,6 @@ augroup CloseIfOnlyControlWinLeft
     au BufEnter * call s:CloseIfOnlyControlWinLeft()
 augroup END
 
-se nu
-set ignorecase
 
 autocmd FileType javascript noremap <buffer>  <c-j> :call JsBeautify()<cr>
 autocmd FileType json noremap <buffer>  <c-j> :call JsBeautify()<cr>
@@ -120,6 +118,10 @@ let g:airline#extensions#tabline#tab_min_count = 0
 let g:airline#extensions#tabline#exclude_preview = 1
 let g:airline#extensions#tabline#buffer_idx_mode = 0
 let g:airline#extensions#tabline#buffer_nr_show = 1
+set guifont=Droid\ Sans\ Mono\ for\ Powerline\ Plus\ Nerd\ File\ Types:h11
+set encoding=utf-8
+let g:airline_powerline_fonts = 1
+
 
 
 
@@ -156,14 +158,16 @@ endif
 syntax enable
 colorscheme onedark
 
+se nu
+set ignorecase
 set mouse=a
 let g:NERDTreeMouseMode=3 
+map <Leader>y "*y
+map <Leader>p "*p
+
 
 
 set grepprg=/usr/bin/grep
-
-
-
 
 call gitgutter#enable()
 
