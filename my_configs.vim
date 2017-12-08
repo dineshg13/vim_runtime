@@ -157,6 +157,7 @@ endif
 " Theme
 syntax enable
 colorscheme onedark
+" colorscheme OceanicNext
 
 se nu
 set ignorecase
