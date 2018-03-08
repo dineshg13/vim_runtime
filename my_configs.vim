@@ -50,6 +50,9 @@ let g:deoplete#sources#go#gocode_binary = $GOPATH.'/bin/gocode'
 let g:deoplete#sources#go#sort_class = ['package', 'func', 'type', 'var', 'const']
 let g:deoplete#sources#go#use_cache = 1
 let g:deoplete#sources#go#json_directory ='~/.vim_runtime/sources_non_forked/deoplete-go/data/json/1.7.3/linux_amd64/'
+
+
+
 function! g:Multiple_cursors_before()
     let g:deoplete#disable_auto_complete = 1
 endfunction
@@ -139,9 +142,9 @@ nnoremap <Leader>o :CtrlP<CR>
 nnoremap <Leader>b :CtrlPBuffer<CR>
 nnoremap <Leader>f :CtrlPMRUFiles<CR>
 
-if has('patch-7.4.1778')
-    set guicolors
-endif
+" if has('patch-7.4.1778')
+"     set guicolors
+" endif
 if has('nvim')
     let $NVIM_TUI_ENABLE_TRUE_COLOR=1
 endif
