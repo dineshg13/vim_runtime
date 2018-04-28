@@ -75,6 +75,11 @@ au FileType go nmap gd <Plug>(go-def-tab)
 au FileType go nmap gr <Plug>(go-rename)
 au FileType go nmap gb <Plug>(go-doc-browser)
 au FileType go nmap gl :GoDeclsDir<CR>
+au Filetype go nmap <leader>ga <Plug>(go-alternate-edit)
+au Filetype go nmap <leader>gah <Plug>(go-alternate-split)
+au Filetype go nmap <leader>gav <Plug>(go-alternate-vertical)
+au FileType go nmap <F12> <Plug>(go-def)
+
 
 " let g:go_highlight_types = 1
 let g:go_highlight_functions = 1
@@ -99,6 +104,9 @@ Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'mhartington/oceanic-next'
 Plug 'SirVer/ultisnips'
+Plug 'buoto/gotests-vim'
+Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
+Plug 'w0rp/ale'
 
 " Initialize plugin system
 
@@ -127,6 +135,25 @@ let g:airline_powerline_fonts = 1
 
 
 
+" vim-go settings
+let g:go_highlight_build_constraints = 1
+let g:go_highlight_extra_types = 1
+let g:go_highlight_fields = 1
+let g:go_highlight_functions = 1
+let g:go_highlight_methods = 1
+let g:go_highlight_operators = 1
+let g:go_highlight_structs = 1
+let g:go_highlight_types = 1
+let g:go_auto_sameids = 1
+let g:go_auto_type_info = 1
+
+
+
+" Error and warning signs.
+let g:ale_sign_error = '⤫'
+let g:ale_sign_warning = '⚠'
+" Enable integration with airline.
+let g:airline#extensions#ale#enabled = 1
 
 " Netrw Style Listing                    
 let g:netrw_banner = 0                   

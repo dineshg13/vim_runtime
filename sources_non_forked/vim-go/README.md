@@ -9,7 +9,7 @@
 This plugin adds Go language support for Vim, with the following main features:
 
 * Compile your package with `:GoBuild`, install it with `:GoInstall` or test it
-  with `:GoTest`. Run a single tests with `:GoTestFunc`).
+  with `:GoTest`. Run a single test with `:GoTestFunc`).
 * Quickly execute your current file(s) with `:GoRun`.
 * Improved syntax highlighting and folding.
 * Debug programs with integrated `delve` support with `:GoDebugStart`.
@@ -45,7 +45,7 @@ for popular package managers:
 * [Pathogen](https://github.com/tpope/vim-pathogen)
   * `git clone https://github.com/fatih/vim-go.git ~/.vim/bundle/vim-go`
 * [vim-plug](https://github.com/junegunn/vim-plug)
-  * `Plug 'fatih/vim-go'`
+  * `Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }`
 
 You will also need to install all the necessary binaries. vim-go makes it easy
 to install all of them by providing a command, `:GoInstallBinaries`, which will

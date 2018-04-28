@@ -2,6 +2,39 @@
 
 FEATURES:
 
+* Add `:GoPointsTo` to show all variables to which the pointer under the cursor
+  may point to.
+  [[GH-1751]](https://github.com/fatih/vim-go/pull/1751)
+* Add `:GoReportGitHubIssue` to initialize a new GitHub issue with as much data
+  that our template requests as possible.
+  [[GH-1738]](https://github.com/fatih/vim-go/pull/1738)
+
+IMPROVEMENTS:
+
+* Add build tags (with `g:go_build_tags`) to all commands that support it.
+  [[GH-1705]](https://github.com/fatih/vim-go/pull/1705)
+* Some command which operate on files (rather than Vim buffers) will now show a
+  warning if there are unsaved buffers, similar to Vim's `:make`.
+  [[GH-1754]](https://github.com/fatih/vim-go/pull/1754)
+
+BUG FIXES:
+
+* Update the correct window's location list after a long running async job
+  completes, even when the user changes their window layout while the job is
+  running.
+  [[GH-1734]](https://github.com/fatih/vim-go/pull/1734)
+* Apply debugger mappings only for Go buffers, and not all buffers.
+  [[GH-1696]](https://github.com/fatih/vim-go/pull/1696)
+* The `gohtmltmpl` filetype will now highlight `{{ .. }}` syntax HTML attributes
+  and some other locations.
+  [[GH-1790]](https://github.com/fatih/vim-go/pull/1790)
+
+BACKWARDS INCOMPATIBILITIES:
+
+## 1.17 - (March 27, 2018)
+
+FEATURES:
+
 * **Debugger support!** Add integrated support for the
   [`delve`](https://github.com/derekparker/delve) debugger. Use
   `:GoInstallBinaries` to install `dlv`, and see `:help go-debug` to get
@@ -24,6 +57,8 @@ IMPROVEMENTS:
   [[GH-1678]](https://github.com/fatih/vim-go/pull/1678)
 * Use the async api when calling gocode to get type info.
   [[GH-1697]](https://github.com/fatih/vim-go/pull/1697)
+* Cache import path lookups to improve responsiveness.
+  [[GH-1713]](https://github.com/fatih/vim-go/pull/1713)
 
 BUG FIXES:
 
@@ -67,7 +102,13 @@ BUG FIXES:
   [[GH-1698]](https://github.com/fatih/vim-go/pull/1698)
 * Keep alternate filename when loading an autocreate template.
   [[GH-1675]](https://github.com/fatih/vim-go/pull/1675)
-
+* Parse the column number in errors correctly in vim8 and neovim.
+  [[GH-1716]](https://github.com/fatih/vim-go/pull/1716)
+* Fix race conditions in the terminal handling for neovim.
+  [[GH-1721]](https://github.com/fatih/vim-go/pull/1721)
+* Put the user back in the original window regardless of the value of
+  `splitright` after starting a neovim terminal window.
+  [[GH-1725]](https://github.com/fatih/vim-go/pull/1725)
 
 BACKWARDS INCOMPATIBILITIES:
 
@@ -87,6 +128,9 @@ BACKWARDS INCOMPATIBILITIES:
   [[GH-1557]](https://github.com/fatih/vim-go/pull/1557)
 * Rename g`g:go_metalinter_excludes` to `g:go_metalinter_disabled`.
   [[GH-1648]](https://github.com/fatih/vim-go/pull/1648)
+* `:GoBuild` doesn't append the `-i` flag anymore due the recent Go 1.10
+  changes that introduced a build cache.
+  [[GH-1701]](https://github.com/fatih/vim-go/pull/1701)
 
 ## 1.16 - (December 29, 2017)
 

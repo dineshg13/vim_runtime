@@ -1,17 +1,5 @@
 scriptencoding utf-8
 
-if !exists('g:go_debug_windows')
-  let g:go_debug_windows = {
-        \ 'stack': 'leftabove 20vnew',
-        \ 'out':   'botright 10new',
-        \ 'vars':  'leftabove 30vnew',
-        \ }
-endif
-
-if !exists('g:go_debug_address')
-  let g:go_debug_address = '127.0.0.1:8181'
-endif
-
 if !exists('s:state')
   let s:state = {
       \ 'rpcid': 1,
@@ -21,10 +9,11 @@ if !exists('s:state')
       \ 'localVars': {},
       \ 'functionArgs': {},
       \ 'message': [],
+      \ 'is_test': 0,
       \}
 
   if go#util#HasDebug('debugger-state')
-    let g:go_debug_diag = s:state
+     call go#config#SetDebugDiag(s:state)
   endif
 endif
 
@@ -70,9 +59,6 @@ endfunction
 
 function! s:call_jsonrpc(method, ...) abort
   if go#util#HasDebug('debugger-commands')
-    if !exists('g:go_debug_commands')
-      let g:go_debug_commands = []
-    endif
     echom 'sending to dlv ' . a:method
   endif
 
@@ -250,7 +236,8 @@ function! go#debug#Stop() abort
   for k in map(split(execute('command GoDebug'), "\n")[1:], 'matchstr(v:val, "^\\s*\\zs\\S\\+")')
     exe 'delcommand' k
   endfor
-  command! -nargs=* -complete=customlist,go#package#Complete GoDebugStart call go#debug#Start(<f-args>)
+  command! -nargs=* -complete=customlist,go#package#Complete GoDebugStart call go#debug#Start(0, <f-args>)
+  command! -nargs=* -complete=customlist,go#package#Complete GoDebugTest  call go#debug#Start(1, <f-args>)
   command! -nargs=? GoDebugBreakpoint call go#debug#Breakpoint(<f-args>)
 
   " Remove all mappings.
@@ -272,6 +259,11 @@ function! go#debug#Stop() abort
 
   set noballooneval
   set balloonexpr=
+
+  augroup vim-go-debug
+    autocmd!
+  augroup END
+  augroup! vim-go-debug
 endfunction
 
 function! s:goto_file() abort
@@ -414,8 +406,9 @@ function! s:start_cb(ch, json) abort
     return
   endif
 
-  if exists('g:go_debug_windows["stack"]') && g:go_debug_windows['stack'] != ''
-    exe 'silent ' . g:go_debug_windows['stack']
+  let debugwindows = go#config#DebugWindows()
+  if has_key(debugwindows, "stack") && debugwindows['stack'] != ''
+    exe 'silent ' . debugwindows['stack']
     silent file `='__GODEBUG_STACKTRACE__'`
     setlocal buftype=nofile bufhidden=wipe nomodified nobuflisted noswapfile nowrap nonumber nocursorline
     setlocal filetype=godebugstacktrace
@@ -423,16 +416,16 @@ function! s:start_cb(ch, json) abort
     nmap <buffer> q <Plug>(go-debug-stop)
   endif
 
-  if exists('g:go_debug_windows["out"]') && g:go_debug_windows['out'] != ''
-    exe 'silent ' . g:go_debug_windows['out']
+  if has_key(debugwindows, "out") && debugwindows['out'] != ''
+    exe 'silent ' . debugwindows['out']
     silent file `='__GODEBUG_OUTPUT__'`
     setlocal buftype=nofile bufhidden=wipe nomodified nobuflisted noswapfile nowrap nonumber nocursorline
     setlocal filetype=godebugoutput
     nmap <buffer> q <Plug>(go-debug-stop)
   endif
 
-  if exists('g:go_debug_windows["vars"]') && g:go_debug_windows['vars'] != ''
-    exe 'silent ' . g:go_debug_windows['vars']
+  if has_key(debugwindows, "vars") && debugwindows['vars'] != ''
+    exe 'silent ' . debugwindows['vars']
     silent file `='__GODEBUG_VARIABLES__'`
     setlocal buftype=nofile bufhidden=wipe nomodified nobuflisted noswapfile nowrap nonumber nocursorline
     setlocal filetype=godebugvariables
@@ -442,6 +435,7 @@ function! s:start_cb(ch, json) abort
   endif
 
   silent! delcommand GoDebugStart
+  silent! delcommand GoDebugTest
   command! -nargs=0 GoDebugContinue   call go#debug#Stack('continue')
   command! -nargs=0 GoDebugNext       call go#debug#Stack('next')
   command! -nargs=0 GoDebugStep       call go#debug#Stack('step')
@@ -459,22 +453,33 @@ function! s:start_cb(ch, json) abort
   nnoremap <silent> <Plug>(go-debug-stop)       :<C-u>call go#debug#Stop()<CR>
   nnoremap <silent> <Plug>(go-debug-print)      :<C-u>call go#debug#Print(expand('<cword>'))<CR>
 
-  nmap <F5>   <Plug>(go-debug-continue)
-  nmap <F6>   <Plug>(go-debug-print)
-  nmap <F9>   <Plug>(go-debug-breakpoint)
-  nmap <F10>  <Plug>(go-debug-next)
-  nmap <F11>  <Plug>(go-debug-step)
-
   set balloonexpr=go#debug#BalloonExpr()
   set ballooneval
 
   exe bufwinnr(oldbuf) 'wincmd w'
+
+  augroup vim-go-debug
+    autocmd!
+    autocmd FileType go nmap <buffer> <F5>   <Plug>(go-debug-continue)
+    autocmd FileType go nmap <buffer> <F6>   <Plug>(go-debug-print)
+    autocmd FileType go nmap <buffer> <F9>   <Plug>(go-debug-breakpoint)
+    autocmd FileType go nmap <buffer> <F10>  <Plug>(go-debug-next)
+    autocmd FileType go nmap <buffer> <F11>  <Plug>(go-debug-step)
+  augroup END
+  doautocmd vim-go-debug FileType go
 endfunction
 
-function! s:starting(ch, msg) abort
+function! s:err_cb(ch, msg) abort
+  call go#util#EchoError(a:msg)
+  let s:state['message'] += [a:msg]
+endfunction
+
+function! s:out_cb(ch, msg) abort
   call go#util#EchoProgress(a:msg)
   let s:state['message'] += [a:msg]
-  if stridx(a:msg, g:go_debug_address) != -1
+
+  " TODO: why do this in this callback?
+  if stridx(a:msg, go#config#DebugAddress()) != -1
     call ch_setoptions(a:ch, {
       \ 'out_cb': function('s:logger', ['OUT: ']),
       \ 'err_cb': function('s:logger', ['ERR: ']),
@@ -493,7 +498,9 @@ endfunction
 
 " Start the debug mode. The first argument is the package name to compile and
 " debug, anything else will be passed to the running program.
-function! go#debug#Start(...) abort
+function! go#debug#Start(is_test, ...) abort
+  call go#cmd#autowrite()
+
   if has('nvim')
     call go#util#EchoError('This feature only works in Vim for now; Neovim is not (yet) supported. Sorry :-(')
     return
@@ -511,10 +518,15 @@ function! go#debug#Start(...) abort
   let s:start_args = a:000
 
   if go#util#HasDebug('debugger-state')
-    let g:go_debug_diag = s:state
+    call go#config#SetDebugDiag(s:state)
   endif
 
-  let l:is_test = bufname('')[-8:] is# '_test.go'
+  " cd in to test directory; this is also what running "go test" does.
+  if a:is_test
+    lcd %:p:h
+  endif
+
+  let s:state.is_test = a:is_test
 
   let dlv = go#path#CheckBinPath("dlv")
   if empty(dlv)
@@ -539,24 +551,26 @@ function! go#debug#Start(...) abort
 
     let l:cmd = [
           \ dlv,
-          \ (l:is_test ? 'test' : 'debug'),
+          \ (a:is_test ? 'test' : 'debug'),
           \ '--output', tempname(),
           \ '--headless',
           \ '--api-version', '2',
           \ '--log',
-          \ '--listen', g:go_debug_address,
+          \ '--listen', go#config#DebugAddress(),
           \ '--accept-multiclient',
     \]
-    if get(g:, 'go_build_tags', '') isnot ''
-      let l:cmd += ['--build-flags', '--tags=' . g:go_build_tags]
+
+    let buildtags = go#config#BuildTags()
+    if buildtags isnot ''
+      let l:cmd += ['--build-flags', '--tags=' . buildtags]
     endif
     let l:cmd += l:args
 
     call go#util#EchoProgress('Starting GoDebug...')
     let s:state['message'] = []
     let s:state['job'] = job_start(l:cmd, {
-      \ 'out_cb': function('s:starting'),
-      \ 'err_cb': function('s:starting'),
+      \ 'out_cb': function('s:out_cb'),
+      \ 'err_cb': function('s:err_cb'),
       \ 'exit_cb': function('s:exit'),
       \ 'stoponexit': 'kill',
     \})
@@ -766,14 +780,10 @@ function! go#debug#Stack(name) abort
 
   " Add a breakpoint to the main.Main if the user didn't define any.
   if len(s:state['breakpoint']) is 0
-    try
-      let res = s:call_jsonrpc('RPCServer.FindLocation', {'loc': 'main.main'})
-      let res = s:call_jsonrpc('RPCServer.CreateBreakpoint', {'Breakpoint': {'addr': res.result.Locations[0].pc}})
-      let bt = res.result.Breakpoint
-      let s:state['breakpoint'][bt.id] = bt
-    catch
-      call go#util#EchoError(v:exception)
-    endtry
+    if go#debug#Breakpoint() isnot 0
+      let s:state.running = 0
+      return
+    endif
   endif
 
   try
@@ -789,6 +799,8 @@ function! go#debug#Stack(name) abort
 endfunction
 
 function! go#debug#Restart() abort
+  call go#cmd#autowrite()
+
   try
     call job_stop(s:state['job'])
     while has_key(s:state, 'job') && job_status(s:state['job']) is# 'run'
@@ -823,7 +835,7 @@ function! s:isActive()
   return len(s:state['message']) > 0
 endfunction
 
-" Toggle breakpoint.
+" Toggle breakpoint. Returns 0 on success and 1 on failure.
 function! go#debug#Breakpoint(...) abort
   let l:filename = fnamemodify(expand('%'), ':p:gs!\\!/!')
 
@@ -832,7 +844,7 @@ function! go#debug#Breakpoint(...) abort
     let linenr = str2nr(a:1)
     if linenr is 0
       call go#util#EchoError('not a number: ' . a:1)
-      return
+      return 0
     endif
   else
     let linenr = line('.')
@@ -871,7 +883,10 @@ function! go#debug#Breakpoint(...) abort
     endif
   catch
     call go#util#EchoError(v:exception)
+    return 1
   endtry
+
+  return 0
 endfunction
 
 sign define godebugbreakpoint text=> texthl=GoDebugBreakpoint

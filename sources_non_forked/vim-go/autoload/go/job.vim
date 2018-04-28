@@ -33,7 +33,7 @@
 function go#job#Spawn(args)
   let cbs = {}
   let state = {
-        \ 'winnr': winnr(),
+        \ 'winid': win_getid(winnr()),
         \ 'dir': getcwd(),
         \ 'jobdir': fnameescape(expand("%:p:h")),
         \ 'messages': [],
@@ -42,7 +42,8 @@ function go#job#Spawn(args)
         \ 'for': "_job",
         \ 'exited': 0,
         \ 'exit_status': 0,
-        \ 'closed': 0
+        \ 'closed': 0,
+        \ 'errorformat': &errorformat
       \ }
 
   if has_key(a:args, 'bang')
@@ -64,7 +65,7 @@ function go#job#Spawn(args)
   function! s:callback(chan, msg) dict
     call add(self.messages, a:msg)
   endfunction
-  " explicitly bind callback so that to state so that within it, self will
+  " explicitly bind callback to state so that within it, self will
   " always refer to state. See :help Partial for more information.
   let cbs.callback = function('s:callback', [], state)
 
@@ -72,7 +73,7 @@ function go#job#Spawn(args)
     let self.exit_status = a:exitval
     let self.exited = 1
 
-    if get(g:, 'go_echo_command_info', 1)
+    if go#config#EchoCommandInfo()
       if a:exitval == 0
         call go#util#EchoSuccess("SUCCESS")
       else
@@ -85,8 +86,8 @@ function go#job#Spawn(args)
       call self.show_errors(a:job, self.exit_status, self.messages)
     endif
   endfunction
-  " explicitly bind exit_cb so that to state so that within it, self will
-  " always refer to state. See :help Partial for more information.
+  " explicitly bind exit_cb to state so that within it, self will always refer
+  " to state. See :help Partial for more information.
   let cbs.exit_cb = function('s:exit_cb', [], state)
 
   function! s:close_cb(ch) dict
@@ -98,42 +99,49 @@ function go#job#Spawn(args)
       call self.show_errors(job, self.exit_status, self.messages)
     endif
   endfunction
-  " explicitly bind close_cb so that to state so that within it, self will
+  " explicitly bind close_cb to state so that within it, self will
   " always refer to state. See :help Partial for more information.
   let cbs.close_cb = function('s:close_cb', [], state)
 
   function state.show_errors(job, exit_status, data)
+    let l:winid = win_getid(winnr())
+    call win_gotoid(self.winid)
+
     let l:listtype = go#list#Type(self.for)
     if a:exit_status == 0
       call go#list#Clean(l:listtype)
-      call go#list#Window(l:listtype)
+      call win_gotoid(l:winid)
       return
     endif
 
     let l:listtype = go#list#Type(self.for)
     if len(a:data) == 0
       call go#list#Clean(l:listtype)
-      call go#list#Window(l:listtype)
+      call win_gotoid(l:winid)
       return
     endif
 
+    let out = join(self.messages, "\n")
+
     let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
     try
+      " parse the errors relative to self.jobdir
       execute cd self.jobdir
-      let errors = go#tool#ParseErrors(a:data)
-      let errors = go#tool#FilterValids(errors)
+      call go#list#ParseFormat(l:listtype, self.errorformat, out, self.for)
+      let errors = go#list#Get(l:listtype)
     finally
       execute cd . fnameescape(self.dir)
     endtry
 
+
     if empty(errors)
       " failed to parse errors, output the original content
       call go#util#EchoError(self.messages + [self.dir])
+      call win_gotoid(l:winid)
       return
     endif
 
-    if self.winnr == winnr()
-      call go#list#Populate(l:listtype, errors, join(self.args))
+    if self.winid == l:winid
       call go#list#Window(l:listtype, len(errors))
       if !self.bang
         call go#list#JumpToFirst(l:listtype)
